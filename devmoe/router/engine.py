@@ -68,8 +68,7 @@ class DevRouter:
 
         # Check if user forced strategy = "local_only"
         if self.config.routing.strategy == "local_only":
-            best_local = self.memory_advisor.get_highest_param_local_fit()
-            target_model = best_local.ollama_tag if best_local else "qwen2.5-coder:7b"
+            target_model = self.provider_manager.get_highest_local_model_target()
             return RoutingDecision(
                 provider_id="ollama_local",
                 model=target_model,
@@ -84,8 +83,7 @@ class DevRouter:
         all_cloud_down = self.quota_tracker.are_cloud_providers_exhausted(cloud_ids)
 
         if all_cloud_down and self.config.routing.failover.auto_air_gap_mode:
-            best_local = self.memory_advisor.get_highest_param_local_fit()
-            target_model = best_local.ollama_tag if best_local else "qwen2.5-coder:7b"
+            target_model = self.provider_manager.get_highest_local_model_target()
             return RoutingDecision(
                 provider_id="ollama_local",
                 model=target_model,
@@ -95,95 +93,57 @@ class DevRouter:
                 is_air_gapped=True,
             )
 
-        # --- ROUTING MATRIX ---
+        # --- ROUTING MATRIX (no model names are hardcoded: providers are asked what they serve) ---
+        pm = self.provider_manager
 
-        # 1. Easy Task (Complexity <= 35) -> Local Ollama Model
+        def usable(pid: str) -> bool:
+            p = pm.providers.get(pid)
+            return bool(p and getattr(p, "is_configured", False) and self.quota_tracker.is_provider_available(pid))
+
+        def cloud_decision(pid: str, tier: TaskTier, label: str) -> RoutingDecision:
+            model = pm.pick_model(pid, tier.value) or "auto"
+            return RoutingDecision(
+                provider_id=pid,
+                model=model,
+                tier=tier,
+                complexity=eval_result,
+                reason=f"{tier.value.capitalize()} task (score {eval_result.score}/100). Routed to {label} ({model}).",
+            )
+
+        def local_decision(tier: TaskTier, fast: bool) -> RoutingDecision:
+            model = pm.get_fast_local_model_target() if fast else pm.get_highest_local_model_target()
+            if fast:
+                why = f"Easy task (score {eval_result.score}/100). Routed to smallest installed local model ({model}) at zero cost."
+            else:
+                why = (
+                    f"{tier.value.capitalize()} task (score {eval_result.score}/100) but no cloud provider is usable. "
+                    f"Routed to largest installed local model that fits {self.memory_advisor.profile.ram_available_gb:.1f} GB free RAM ({model})."
+                )
+            return RoutingDecision(provider_id="ollama_local", model=model, tier=tier, complexity=eval_result, reason=why)
+
         if eval_result.tier == TaskTier.EASY:
-            # For easy tasks, use lightweight fast local model
-            local_model = self.config.local.preferred_models[-1] if self.config.local.preferred_models else "qwen2.5-coder:1.5b"
-            return RoutingDecision(
-                provider_id="ollama_local",
-                model=local_model,
-                tier=TaskTier.EASY,
-                complexity=eval_result,
-                reason=f"Easy task (score {eval_result.score}/100). Routed to fast, zero-cost local model ({local_model}).",
-            )
+            return local_decision(TaskTier.EASY, fast=True)
 
-        # 2. Medium Task (Complexity 36 - 70) -> Curated Free Cloud (Gemma / Flash / Groq)
         if eval_result.tier == TaskTier.MEDIUM:
-            # Check Gemini / Gemma Free Tier
-            if self.provider_manager.gemini.is_configured and self.quota_tracker.is_provider_available("gemini_gemma_cloud"):
-                return RoutingDecision(
-                    provider_id="gemini_gemma_cloud",
-                    model="gemini-1.5-flash",
-                    tier=TaskTier.MEDIUM,
-                    complexity=eval_result,
-                    reason=f"Medium task (score {eval_result.score}/100). Routed to Google AI Studio Gemini 1.5 Flash (Curated Free Tier).",
-                )
-            # Check Groq Free Tier
-            if hasattr(self.provider_manager, "groq") and self.provider_manager.groq.is_configured and self.quota_tracker.is_provider_available("groq_cloud"):
-                return RoutingDecision(
-                    provider_id="groq_cloud",
-                    model="qwen-2.5-coder-32b",
-                    tier=TaskTier.MEDIUM,
-                    complexity=eval_result,
-                    reason=f"Medium task (score {eval_result.score}/100). Routed to Groq Cloud Qwen 2.5 Coder 32B (Curated Free Tier).",
-                )
-            # Cloud free not configured or cooling down -> Local fallback
-            best_local = self.memory_advisor.get_highest_param_local_fit()
-            target_model = best_local.ollama_tag if best_local else "qwen2.5-coder:7b"
-            return RoutingDecision(
-                provider_id="ollama_local",
-                model=target_model,
-                tier=TaskTier.MEDIUM,
-                complexity=eval_result,
-                reason=f"Medium task. Cloud free tiers unavailable. Routed to local {best_local.name}.",
-            )
+            for pid, label in (
+                ("gemini_gemma_cloud", "Google AI Studio free tier"),
+                ("groq_cloud", "Groq free tier"),
+                ("cerebras_cloud", "Cerebras free tier"),
+            ):
+                if usable(pid):
+                    return cloud_decision(pid, TaskTier.MEDIUM, label)
+            return local_decision(TaskTier.MEDIUM, fast=False)
 
-        # 3. Complex Task (Complexity > 70) -> Cloud Frontier (Claude 3.5 / Gemini 1.5 Pro / GPT-4o) or Gemma 2 27B
-        if eval_result.tier == TaskTier.COMPLEX:
-            # Check Anthropic Claude
-            if self.provider_manager.anthropic.is_configured and self.quota_tracker.is_provider_available("anthropic_claude"):
-                return RoutingDecision(
-                    provider_id="anthropic_claude",
-                    model="claude-3-5-sonnet-20241022",
-                    tier=TaskTier.COMPLEX,
-                    complexity=eval_result,
-                    reason=f"Complex task (score {eval_result.score}/100). Routed to Anthropic Claude 3.5 Sonnet.",
-                )
-            # Check Google AI Studio Gemini 1.5 Pro / Gemma 2 27B
-            if self.provider_manager.gemini.is_configured and self.quota_tracker.is_provider_available("gemini_gemma_cloud"):
-                return RoutingDecision(
-                    provider_id="gemini_gemma_cloud",
-                    model="gemini-1.5-pro",
-                    tier=TaskTier.COMPLEX,
-                    complexity=eval_result,
-                    reason=f"Complex task (score {eval_result.score}/100). Routed to Gemini 1.5 Pro (Deep Reasoning).",
-                )
-            # Check OpenAI
-            if self.provider_manager.openai.is_configured and self.quota_tracker.is_provider_available("openai_cloud"):
-                return RoutingDecision(
-                    provider_id="openai_cloud",
-                    model="gpt-4o",
-                    tier=TaskTier.COMPLEX,
-                    complexity=eval_result,
-                    reason=f"Complex task (score {eval_result.score}/100). Routed to OpenAI GPT-4o.",
-                )
-
-            # If all frontier cloud APIs are missing or rate limited:
-            # Fall back to the highest parameter local model that fits in current host RAM/VRAM!
-            best_local = self.memory_advisor.get_highest_param_local_fit()
-            target_model = best_local.ollama_tag if best_local else "gemma2:9b"
-            return RoutingDecision(
-                provider_id="ollama_local",
-                model=target_model,
-                tier=TaskTier.COMPLEX,
-                complexity=eval_result,
-                reason=(
-                    f"Complex task (score {eval_result.score}/100), but cloud keys unavailable or rate limited. "
-                    f"Fell back to highest-parameter local model fitting current RAM ({self.memory_advisor.profile.ram_available_gb:.1f} GB free): {best_local.name} ({target_model})."
-                ),
-            )
+        for pid, label in (
+            ("anthropic_claude", "Anthropic"),
+            ("gemini_gemma_cloud", "Google AI Studio"),
+            ("openai_cloud", "OpenAI"),
+            ("groq_cloud", "Groq free tier"),
+            ("cerebras_cloud", "Cerebras free tier"),
+        ):
+            if usable(pid):
+                return cloud_decision(pid, TaskTier.COMPLEX, label)
+        return local_decision(TaskTier.COMPLEX, fast=False)
 
     async def execute(
         self,
@@ -204,6 +164,7 @@ class DevRouter:
         response = await self.provider_manager.execute_with_failover(
             primary_provider_id=decision.provider_id,
             primary_model=decision.model,
+            tier=decision.tier.value,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,

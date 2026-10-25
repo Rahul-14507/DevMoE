@@ -66,6 +66,10 @@ def create_app(config: AppConfig = None) -> FastAPI:
     app.state.provider_manager = provider_manager
     app.state.dev_router = dev_router
 
+    @app.on_event("startup")
+    async def _discover_models():
+        await provider_manager.refresh_models()
+
     # Register API Router
     app.include_router(api_router)
 

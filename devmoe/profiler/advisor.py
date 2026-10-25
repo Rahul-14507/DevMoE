@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
@@ -165,6 +166,14 @@ class MemoryAdvisor:
         self.profile = hardware_profile or get_hardware_profile()
         self.ram_headroom_gb = ram_headroom_gb
         self.vram_headroom_gb = vram_headroom_gb
+        self._last_refresh = time.time()
+
+    def refresh(self, max_age_seconds: float = 5.0) -> HardwareProfile:
+        """Re-read RAM/VRAM if the cached reading is older than max_age_seconds."""
+        if time.time() - self._last_refresh >= max_age_seconds:
+            self.profile = get_hardware_profile()
+            self._last_refresh = time.time()
+        return self.profile
 
     def evaluate_model(self, spec: ModelSpec) -> ModelSuitability:
         """Determine suitability of a model given current hardware state."""

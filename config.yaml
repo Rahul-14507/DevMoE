@@ -35,16 +35,18 @@ local:
     - "qwen2.5-coder:1.5b"
 
 curated_cloud_providers:
-  # Curated Free Tier: Google AI Studio (Gemini & Gemma)
+  # Models are discovered from each provider's /models endpoint at startup and ranked
+  # automatically. To force a specific model for a tier, add e.g.
+  #   models: { medium: "<model-id>", complex: "<model-id>" }
+  # A pin is ignored if the provider no longer serves it.
+
+  # Curated Free Tier: Google AI Studio (Gemini and Gemma)
   gemini:
     enabled: true
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
     env_key: "GEMINI_API_KEY"
     free_tier: true
-    models:
-      complex: "gemini-2.5-pro"
-      medium: "gemini-2.5-flash"
-      gemma_cloud: "gemini-flash-latest"
+    models: {}
 
   # Curated Free Tier: Groq Cloud
   groq:
@@ -52,9 +54,7 @@ curated_cloud_providers:
     base_url: "https://api.groq.com/openai/v1"
     env_key: "GROQ_API_KEY"
     free_tier: true
-    models:
-      fast_coder: "qwen/qwen3.8-27b"
-      versatile: "qwen/qwen3.8-27b"
+    models: {}
 
   # Curated Free Tier: Cerebras Cloud
   cerebras:
@@ -62,22 +62,18 @@ curated_cloud_providers:
     base_url: "https://api.cerebras.ai/v1"
     env_key: "CEREBRAS_API_KEY"
     free_tier: true
-    models:
-      fast_coder: "llama3.1-70b"
+    models: {}
 
-  # Frontier APIs (Optional Pay-as-you-go / User Keys)
+  # Frontier APIs (optional, user-supplied keys)
   anthropic:
     enabled: true
     env_key: "ANTHROPIC_API_KEY"
     free_tier: false
-    models:
-      frontier: "claude-3-5-sonnet-20241022"
+    models: {}
 
   openai:
     enabled: true
     base_url: "https://api.openai.com/v1"
     env_key: "OPENAI_API_KEY"
     free_tier: false
-    models:
-      frontier: "gpt-4o"
-      mini: "gpt-4o-mini"
+    models: {}

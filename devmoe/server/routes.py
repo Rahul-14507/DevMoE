@@ -51,62 +51,27 @@ async def list_models(request: Request):
     deps = get_dependencies(request)
     advisor: MemoryAdvisor = deps["memory_advisor"]
     best_local = advisor.get_highest_param_local_fit()
-    best_tag = best_local.ollama_tag if best_local else "qwen2.5-coder:7b"
+    best_tag = best_local.ollama_tag if best_local else "none-fits"
 
+    now = int(time.time())
     models = [
-        {
-            "id": "devmoe-auto",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "devmoe",
-            "description": "Intelligent Smart Router: auto-routes between local Ollama and curated free cloud based on task complexity.",
-        },
-        {
-            "id": "devmoe-local",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "devmoe",
-            "description": f"Always routes to the highest-parameter local model fitting host memory ({best_tag}).",
-        },
-        {
-            "id": "devmoe-fast",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "devmoe",
-            "description": "Ultra-fast local model for routine tasks, typing, and docstrings.",
-        },
-        {
-            "id": "devmoe-frontier",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "devmoe",
-            "description": "Frontier Cloud routing (Claude 3.5 Sonnet / Gemini 1.5 Pro / GPT-4o) with local fallback.",
-        },
-        {
-            "id": "gemini-1.5-pro",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "google",
-        },
-        {
-            "id": "gemini-1.5-flash",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "google",
-        },
-        {
-            "id": "gemma-2-27b-it",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "google",
-        },
-        {
-            "id": best_tag,
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "ollama",
-        },
+        {"id": "devmoe-auto", "object": "model", "created": now, "owned_by": "devmoe",
+         "description": "Complexity-aware routing across local and cloud models with automatic failover."},
+        {"id": "devmoe-local", "object": "model", "created": now, "owned_by": "devmoe",
+         "description": f"Largest installed local model that fits current memory ({best_tag})."},
+        {"id": "devmoe-fast", "object": "model", "created": now, "owned_by": "devmoe",
+         "description": "Smallest installed local model, for quick low-stakes checks."},
+        {"id": "devmoe-frontier", "object": "model", "created": now, "owned_by": "devmoe",
+         "description": "Strongest configured cloud model with local failover."},
     ]
+    provider_mgr: ProviderManager = deps["provider_manager"]
+    from ..providers.discovery import is_chat_model
+    for pid, ids in provider_mgr.model_cache.items():
+        for mid in ids:
+            if is_chat_model(mid):
+                models.append({"id": mid.replace("models/", ""), "object": "model", "created": now, "owned_by": pid})
+    for tag in provider_mgr.installed_local:
+        models.append({"id": tag, "object": "model", "created": now, "owned_by": "ollama"})
     return {"object": "list", "data": models}
 
 
@@ -127,7 +92,7 @@ async def chat_completions(payload: ChatCompletionRequest, request: Request):
         force_provider = "ollama_local"
     elif payload.model == "devmoe-fast":
         force_provider = "ollama_local"
-        force_model = "qwen2.5-coder:1.5b"
+        force_model = provider_mgr.get_fast_local_model_target()
     elif payload.model == "devmoe-frontier":
         # Force cloud frontier target
         pass
@@ -220,6 +185,7 @@ async def chat_completions(payload: ChatCompletionRequest, request: Request):
     response = await provider_mgr.execute_with_failover(
         primary_provider_id=decision.provider_id,
         primary_model=decision.model,
+        tier=decision.tier.value,
         messages=messages_raw,
         temperature=payload.temperature or 0.7,
         max_tokens=payload.max_tokens,
@@ -306,7 +272,7 @@ async def get_system_status(request: Request):
             "base_url": provider_mgr.local_ollama.base_url,
             "is_alive": await provider_mgr.local_ollama.is_healthy(),
             "installed_models": installed_models,
-            "highest_param_fit": best_local.ollama_tag if best_local else "qwen2.5-coder:7b",
+            "highest_param_fit": best_local.ollama_tag if best_local else "none-fits",
             "highest_param_name": best_local.name if best_local else "Qwen 2.5 Coder 7B",
         },
         "providers": {
