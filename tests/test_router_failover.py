@@ -26,11 +26,13 @@ async def test_quota_tracker_and_fallback():
     # Initial availability
     assert tracker.is_provider_available("gemini_gemma_cloud") is True
 
-    # Record 429 rate limit
+    # Record 429 rate limit on cloud providers
     tracker.record_rate_limit("gemini_gemma_cloud", status_code=429, error_msg="Rate limit")
+    tracker.record_rate_limit("groq_cloud", status_code=429, error_msg="Rate limit")
     assert tracker.is_provider_available("gemini_gemma_cloud") is False
+    assert tracker.is_provider_available("groq_cloud") is False
 
-    # Route a medium query: because gemini is rate-limited, router falls back to local model
+    # Route a medium query: because cloud providers are rate-limited, router falls back to local model
     decision = router.route_task([{"role": "user", "content": "Create a REST API with database schema and unit tests"}])
     assert decision.provider_id == "ollama_local"
     # Target should be selected via advisor
