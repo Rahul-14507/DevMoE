@@ -1,7 +1,9 @@
 <div align="center">
 
-# ⚡ DevMoE
+# DevMoE
+
 ### Intelligent, Memory-Aware LLM Router for Software Engineering
+
 **Dynamic Hybrid Routing between Local MoE (Ollama) and Curated Free Cloud Tiers**
 
 [![CI Tests](https://img.shields.io/badge/tests-12%20passed-10b981.svg?style=flat-square)](tests/)
@@ -34,6 +36,7 @@ When using AI coding assistants (Cursor, VS Code Continue, Cline, Claude Dev, Ai
 3. **Hardware-Blind Local Deployments**: Running local LLMs blindly without hardware awareness causes out-of-memory errors, OS paging, or choosing models too small when GPU VRAM is sitting idle.
 
 **DevMoE** solves this by acting as an intelligent, self-hosted proxy between your editor and LLM backends:
+
 - **Heuristic & AST Complexity Engine**: Automatically classifies task difficulty ($0 - 100$).
 - **Zero-Cost Routine Execution**: Routes low-complexity tasks to fast local models (`qwen2.5-coder:1.5b`).
 - **Cloud Reasoning Delegation**: Routes medium and complex tasks to curated free tiers (Groq Qwen 27B, Google AI Studio Gemini/Gemma) or frontier APIs.
@@ -94,18 +97,19 @@ The table below reflects real execution data from [`test_parallel.py`](test_para
 
 DevMoE dynamically inspects your hardware and scores candidate models from its curated catalog based on current memory headroom:
 
-| Model | Parameters | Required Memory | Specialization | Suitability (16GB RAM + 6GB VRAM) | Ollama Pull Command |
-| :--- | :---: | :---: | :--- | :---: | :--- |
-| **Qwen 2.5 Coder** | 1.5B | 1.5 GB | Routine Syntax & Typing | `OPTIMAL` (100% VRAM) | `ollama pull qwen2.5-coder:1.5b` |
-| **DeepSeek Coder** | 1.3B | 1.4 GB | Fast Code Snippets | `OPTIMAL` (100% VRAM) | `ollama pull deepseek-coder:1.3b` |
-| **Google Gemma 2** | 2.6B | 2.2 GB | General Reasoning | `OPTIMAL` (100% VRAM) | `ollama pull gemma2:2b` |
-| **Llama 3.2** | 3.2B | 2.8 GB | General & Refactoring | `OPTIMAL` (100% VRAM) | `ollama pull llama3.2:3b` |
-| **DeepSeek Coder** | 6.7B | 4.8 GB | **High-Param Code Specialist** | `OPTIMAL` (**Primary Fallback**) | `ollama pull deepseek-coder:6.7b` |
-| **Qwen 2.5 Coder** | 7.0B | 5.2 GB | Multi-file Code Generation | `TIGHT FIT` | `ollama pull qwen2.5-coder:7b` |
-| **DeepSeek Coder V2**| 16.0B (MoE)| 10.5 GB | Architectural Code Review | `EXCEEDS VRAM` (RAM Only) | `ollama pull deepseek-coder-v2:16b` |
-| **Qwen 2.5 Coder** | 32.0B | 22.0 GB | Deep Reasoning | `EXCEEDS RAM` | *(Use Groq Cloud)* |
+| Model                 | Parameters  | Required Memory | Specialization                 | Suitability (16GB RAM + 6GB VRAM) | Ollama Pull Command                 |
+| :-------------------- | :---------: | :-------------: | :----------------------------- | :-------------------------------: | :---------------------------------- |
+| **Qwen 2.5 Coder**    |    1.5B     |     1.5 GB      | Routine Syntax & Typing        |       `OPTIMAL` (100% VRAM)       | `ollama pull qwen2.5-coder:1.5b`    |
+| **DeepSeek Coder**    |    1.3B     |     1.4 GB      | Fast Code Snippets             |       `OPTIMAL` (100% VRAM)       | `ollama pull deepseek-coder:1.3b`   |
+| **Google Gemma 2**    |    2.6B     |     2.2 GB      | General Reasoning              |       `OPTIMAL` (100% VRAM)       | `ollama pull gemma2:2b`             |
+| **Llama 3.2**         |    3.2B     |     2.8 GB      | General & Refactoring          |       `OPTIMAL` (100% VRAM)       | `ollama pull llama3.2:3b`           |
+| **DeepSeek Coder**    |    6.7B     |     4.8 GB      | **High-Param Code Specialist** | `OPTIMAL` (**Primary Fallback**)  | `ollama pull deepseek-coder:6.7b`   |
+| **Qwen 2.5 Coder**    |    7.0B     |     5.2 GB      | Multi-file Code Generation     |            `TIGHT FIT`            | `ollama pull qwen2.5-coder:7b`      |
+| **DeepSeek Coder V2** | 16.0B (MoE) |     10.5 GB     | Architectural Code Review      |     `EXCEEDS VRAM` (RAM Only)     | `ollama pull deepseek-coder-v2:16b` |
+| **Qwen 2.5 Coder**    |    32.0B    |     22.0 GB     | Deep Reasoning                 |           `EXCEEDS RAM`           | _(Use Groq Cloud)_                  |
 
 To inspect your machine's live suitability matrix:
+
 ```bash
 python run.py recommend
 ```
@@ -125,6 +129,7 @@ pip install -e .
 ### 2. Configure Keys (Optional)
 
 Copy `.env.example` to `.env`:
+
 ```bash
 cp .env.example .env
 ```
@@ -146,13 +151,14 @@ OPENAI_API_KEY=sk-...
 ### 3. Pull Recommended Local Models
 
 Ensure [Ollama](https://ollama.ai) is running, then pull the recommended models for your machine:
+
 ```bash
 # Recommended baseline (fits on consumer GPUs)
 ollama pull qwen2.5-coder:1.5b
 ollama pull deepseek-coder:6.7b
 ```
 
-*(Or run `python download_models.py` to pull them interactively).*
+_(Or run `python download_models.py` to pull them interactively)._
 
 ### 4. Launch Gateway & Web Dashboard
 
@@ -194,6 +200,7 @@ python run.py serve --host 127.0.0.1 --port 8080
 Because DevMoE exposes an exact OpenAI-compatible endpoint at `/v1/chat/completions`, it works out of the box with any tool that supports a custom base URL.
 
 ### Cursor / Windsurf / VS Code Continue
+
 Add DevMoE to your extension settings (`config.json`):
 
 ```json
@@ -218,11 +225,13 @@ Add DevMoE to your extension settings (`config.json`):
 ```
 
 ### Aider CLI
+
 ```bash
 aider --openai-api-base http://localhost:8080/v1 --openai-api-key dummy --model devmoe-auto
 ```
 
 ### Python SDK
+
 ```python
 from openai import OpenAI
 
@@ -276,14 +285,17 @@ pytest tests/test_server.py
 We welcome contributions from the open-source community! Whether you want to add a new cloud provider, refine task complexity heuristics, or optimize VRAM allocation logic:
 
 ### Adding a New Provider
+
 1. Inherit from `BaseProvider` in [`devmoe/providers/base.py`](devmoe/providers/base.py).
 2. Implement `complete()` and `stream_complete()` with error handling for `ProviderRateLimitError` and `ProviderQuotaExhaustedError`.
 3. Register the provider in [`devmoe/providers/manager.py`](devmoe/providers/manager.py) and [`config.yaml`](config.yaml).
 
 ### Refining Task Complexity Heuristics
+
 Heuristic weights and regex patterns reside in [`devmoe/router/classifier.py`](devmoe/router/classifier.py). Feel free to submit PRs adding patterns for language-specific frameworks (e.g., Tokio in Rust, Goroutines in Go, React concurrency).
 
 ### Development Workflow
+
 ```bash
 # Create feature branch
 git checkout -b feature/my-new-feature
@@ -314,6 +326,7 @@ ruff check .
 ## 📜 Acknowledgments & Inspiration
 
 DevMoE draws direct architectural inspiration from two pioneering projects:
+
 - [**Rahul-14507/MELLM**](https://github.com/Rahul-14507/MELLM): Pioneered lightweight, modular Mixture-of-Experts routing for local LLMs on consumer GPUs.
 - [**tashfeenahmed/freellmapi**](https://github.com/tashfeenahmed/freellmapi): Demonstrated unified OpenAI-compatible aggregation and resilience across free-tier endpoints.
 
