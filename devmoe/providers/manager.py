@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional, Tuple, AsyncIterator
+from __future__ import annotations
+from typing import Dict, List, Optional, Tuple, AsyncIterator, TYPE_CHECKING
 from .base import (
     BaseProvider,
     ProviderResponse,
@@ -13,7 +14,9 @@ from .anthropic import AnthropicProvider
 from .openai_compat import OpenAICompatibleProvider
 from ..config import AppConfig
 from ..profiler.advisor import MemoryAdvisor, ModelSpec
-from ..router.quota_tracker import QuotaTracker
+
+if TYPE_CHECKING:
+    from ..router.quota_tracker import QuotaTracker
 
 
 class ProviderManager:

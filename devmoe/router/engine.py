@@ -1,11 +1,14 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 from ..config import AppConfig
 from ..profiler.advisor import MemoryAdvisor, ModelSpec
-from ..providers.manager import ProviderManager
 from ..providers.base import ProviderResponse
 from .classifier import CodeComplexityClassifier, TaskTier, ComplexityEvaluation
 from .quota_tracker import QuotaTracker
+
+if TYPE_CHECKING:
+    from ..providers.manager import ProviderManager
 
 
 @dataclass

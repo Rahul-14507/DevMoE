@@ -30,10 +30,8 @@ local:
   timeout_seconds: 120
   # Default fallback preference order if not autodetected:
   preferred_models:
-    - "gemma2:9b"
-    - "qwen2.5-coder:7b"
     - "deepseek-coder:6.7b"
-    - "llama3.2:3b"
+    - "gemma2:2b"
     - "qwen2.5-coder:1.5b"
 
 curated_cloud_providers:
@@ -44,9 +42,9 @@ curated_cloud_providers:
     env_key: "GEMINI_API_KEY"
     free_tier: true
     models:
-      complex: "gemini-1.5-pro"
-      medium: "gemini-1.5-flash"
-      gemma_cloud: "gemma-2-27b-it"
+      complex: "gemini-2.5-pro"
+      medium: "gemini-2.5-flash"
+      gemma_cloud: "gemini-flash-latest"
 
   # Curated Free Tier: Groq Cloud
   groq:
@@ -55,8 +53,8 @@ curated_cloud_providers:
     env_key: "GROQ_API_KEY"
     free_tier: true
     models:
-      fast_coder: "qwen-2.5-coder-32b"
-      versatile: "llama-3.3-70b-versatile"
+      fast_coder: "qwen/qwen3.8-27b"
+      versatile: "qwen/qwen3.8-27b"
 
   # Curated Free Tier: Cerebras Cloud
   cerebras:
