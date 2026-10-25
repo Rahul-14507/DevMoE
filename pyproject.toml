@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devmoe"
+version = "0.1.0"
+description = "Intelligent Software Development LLM Router blending Local MoE and Curated Free Cloud Tiers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "DevMoE Team", email = "devmoe-oss@users.noreply.github.com"}
+]
+keywords = ["llm", "router", "ollama", "gemini", "gemma", "claude", "ai-gateway", "moe"]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "pyyaml>=6.0.1",
+    "psutil>=5.9.0",
+    "httpx>=0.27.0",
+    "rich>=13.7.0",
+    "python-dotenv>=1.0.0",
+    "sse-starlette>=2.0.0"
+]
+
+[project.scripts]
+devmoe = "devmoe.cli:main"

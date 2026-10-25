@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevMoE - Intelligent Software Development LLM Router</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <h1>DevMoE <span class="badge version">v0.1.0</span></h1>
+          <p class="tagline">Local MoE & Curated Free Cloud Hybrid Gateway</p>
+        </div>
+      </div>
+
+      <div class="nav-metrics">
+        <div class="metric-pill" id="ramMetric">
+          <span class="label">Host RAM:</span>
+          <span class="value" id="ramValue">-- GB / -- GB</span>
+        </div>
+        <div class="metric-pill" id="vramMetric">
+          <span class="label">GPU VRAM:</span>
+          <span class="value" id="vramValue">--</span>
+        </div>
+        <div class="metric-pill status-pill" id="ollamaStatusPill">
+          <span class="status-dot"></span>
+          <span class="label" id="ollamaStatusLabel">Ollama Local</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="subnav">
+      <button class="nav-tab active" data-tab="playground">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+        Interactive Routing Playground
+      </button>
+      <button class="nav-tab" data-tab="advisor">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line></svg>
+        Memory Advisor & Local Models
+      </button>
+      <button class="nav-tab" data-tab="providers">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+        Curated Providers & Failover
+      </button>
+      <button class="nav-tab" data-tab="integration">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        IDE & Agent Integration
+      </button>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="content-container">
+      
+      <!-- TAB 1: PLAYGROUND & VISUAL PIPELINE -->
+      <section id="tab-playground" class="tab-pane active">
+        <div class="grid-layout-2col">
+          
+          <!-- Input Card -->
+          <div class="card glass-card">
+            <div class="card-header">
+              <h2>Software Engineering Query</h2>
+              <span class="badge info">OpenAI /v1/chat/completions</span>
+            </div>
+
+            <div class="preset-pills">
+              <span class="preset-label">Presets:</span>
+              <button class="preset-btn" data-type="easy_regex">Regex & Docstring (Easy)</button>
+              <button class="preset-btn" data-type="med_api">FastAPI & SQL (Medium)</button>
+              <button class="preset-btn" data-type="complex_concurrency">Raft Concurrency (Complex)</button>
+              <button class="preset-btn" data-type="easy_syntax">Fix Syntax Error (Easy)</button>
+            </div>
+
+            <div class="input-group">
+              <label for="promptInput">Prompt / Code Snippet:</label>
+              <textarea id="promptInput" rows="7" placeholder="Type or paste any coding task, architecture query, or bug fix..."></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button id="btnAnalyzeRoute" class="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                Analyze & Test Route
+              </button>
+              <button id="btnExecuteCompletion" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Execute Completion
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Decision & Pipeline Card -->
+          <div class="card glass-card">
+            <div class="card-header">
+              <h2>Routing Decision & Architecture Flow</h2>
+              <span id="tierBadge" class="badge">Awaiting Query</span>
+            </div>
+
+            <!-- Pipeline Visual Steps -->
+            <div class="pipeline-container">
+              <div class="step-node" id="stepPrompt">
+                <div class="node-icon">01</div>
+                <div class="node-text">Prompt Parsing</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="step-node" id="stepComplexity">
+                <div class="node-icon">02</div>
+                <div class="node-text">Complexity Engine</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="step-node" id="stepRouting">
+                <div class="node-icon">03</div>
+                <div class="node-text">Target Model</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="step-node" id="stepFailover">
+                <div class="node-icon">04</div>
+                <div class="node-text">Failover Cascade</div>
+              </div>
+            </div>
+
+            <!-- Complexity Score Meter -->
+            <div class="score-card">
+              <div class="score-meta">
+                <div class="score-val-block">
+                  <span class="score-num" id="scoreNum">--</span>
+                  <span class="score-max">/ 100</span>
+                </div>
+                <div class="score-desc">
+                  <h4 id="scoreTitle">Complexity Score</h4>
+                  <p id="scoreSummary">Submit a query to evaluate task complexity.</p>
+                </div>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="scoreProgress"></div>
+              </div>
+            </div>
+
+            <!-- Target Model Card -->
+            <div class="decision-result-box" id="decisionResultBox">
+              <div class="decision-row">
+                <span class="dec-label">Destination Provider:</span>
+                <span class="dec-val highlight" id="destProvider">--</span>
+              </div>
+              <div class="decision-row">
+                <span class="dec-label">Target Model:</span>
+                <span class="dec-val highlight" id="destModel">--</span>
+              </div>
+              <div class="decision-row">
+                <span class="dec-label">Routing Rationale:</span>
+                <span class="dec-val text-muted" id="decRationale">--</span>
+              </div>
+              <div class="decision-row" id="fallbackRow" style="display:none;">
+                <span class="dec-label">Failover Event:</span>
+                <span class="dec-val warning" id="decFallbackInfo">--</span>
+              </div>
+            </div>
+
+            <!-- Extracted Intent Signals -->
+            <div class="signals-container">
+              <h4>Extracted Task Signals</h4>
+              <div id="signalsList" class="signals-tags">
+                <span class="signal-tag empty">No query analyzed yet</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output / Response Window -->
+        <div class="card glass-card full-width mt-4" id="outputCard" style="display: none;">
+          <div class="card-header">
+            <h2>LLM Completion Output</h2>
+            <div class="output-stats">
+              <span id="outputProviderBadge" class="badge">--</span>
+              <span id="outputLatency" class="stat-meta">Latency: -- ms</span>
+              <span id="outputTokens" class="stat-meta">Tokens: --</span>
+            </div>
+          </div>
+          <div class="code-output-wrapper">
+            <pre><code id="completionContent"></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: MEMORY ADVISOR & LOCAL MODELS -->
+      <section id="tab-advisor" class="tab-pane">
+        <div class="advisor-hero card glass-card">
+          <div class="advisor-summary">
+            <h3>Hardware Profiler & Dynamic Local Model Recommendations</h3>
+            <p>DevMoE dynamically inspects physical RAM & VRAM, then categorizes models from the catalog based on available memory headroom. In the event of cloud rate limits or offline development, it automatically triggers the <strong>highest-parameter model</strong> that safely fits your machine.</p>
+          </div>
+          <div class="fallback-hero-card" id="fallbackHeroCard">
+            <span class="sub-label">Automatic Failover Target:</span>
+            <h2 id="fallbackTargetModel">DeepSeek Coder 6.7B</h2>
+            <p id="fallbackTargetReason">Optimal fit for current host RAM with zero swapping.</p>
+          </div>
+        </div>
+
+        <div class="card glass-card mt-4">
+          <div class="card-header">
+            <h2>Curated Local Model Catalog & Memory Fit</h2>
+            <span class="badge info">Evaluated on Host Hardware</span>
+          </div>
+          <div class="table-responsive">
+            <table class="model-table">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Family</th>
+                  <th>Params</th>
+                  <th>RAM Req</th>
+                  <th>Context</th>
+                  <th>Suitability</th>
+                  <th>System Headroom</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="recommendationsTableBody">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: CURATED PROVIDERS & FAILOVER -->
+      <section id="tab-providers" class="tab-pane">
+        <div class="card glass-card mb-4">
+          <div class="card-header">
+            <h2>Curated Free & Frontier Cloud Providers</h2>
+            <span class="badge info">Unlimited Free Tier Management</span>
+          </div>
+          <p class="description-text">
+            Unlike gateways that dump dozens of unverified providers, DevMoE curates top-tier reliable free endpoints: <strong>Google AI Studio (Gemini & Gemma API)</strong>, <strong>Groq Cloud</strong>, and <strong>Cerebras</strong>. If quotas expire or rate limits (HTTP 429) hit, the gateway instantly cascades requests to your local Ollama models.
+          </p>
+        </div>
+
+        <div class="providers-grid" id="providersGrid">
+          <!-- Populated via JS -->
+        </div>
+
+        <div class="card glass-card mt-4">
+          <div class="card-header">
+            <h2>Live Failover & Circuit Breaker Logs</h2>
+            <span class="badge warning">Event Stream</span>
+          </div>
+          <div id="failoverEventsList" class="event-logs-box">
+            <p class="text-muted">No recent rate limits or failover events recorded. All providers operational.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: INTEGRATION GUIDE -->
+      <section id="tab-integration" class="tab-pane">
+        <div class="card glass-card">
+          <div class="card-header">
+            <h2>Seamless Developer Setup</h2>
+            <span class="badge info">OpenAI Drop-In Replacement</span>
+          </div>
+          <p class="description-text">
+            DevMoE exposes an OpenAI-compatible API at <code>http://localhost:8080/v1</code>. You can configure it as the custom base URL in Cursor, VS Code Continue, Cline, Claude Dev, Aider, or scripts.
+          </p>
+
+          <div class="integration-snippets">
+            <div class="snippet-block">
+              <h3>1. Cursor / Windsurf / VS Code Continue Configuration</h3>
+              <pre><code>{
+  "models": [
+    {
+      "title": "DevMoE (Auto Hybrid Router)",
+      "provider": "openai",
+      "model": "devmoe-auto",
+      "apiBase": "http://localhost:8080/v1",
+      "apiKey": "dummy"
+    },
+    {
+      "title": "DevMoE (Local High-Param Only)",
+      "provider": "openai",
+      "model": "devmoe-local",
+      "apiBase": "http://localhost:8080/v1",
+      "apiKey": "dummy"
+    }
+  ]
+}</code></pre>
+            </div>
+
+            <div class="snippet-block">
+              <h3>2. Python OpenAI Client</h3>
+              <pre><code>from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8080/v1",
+    api_key="dummy"
+)
+
+response = client.chat.completions.create(
+    model="devmoe-auto",
+    messages=[
+        {"role": "user", "content": "Design a raft consensus system with mutex locks"}
+    ]
+)
+
+print(response.choices[0].message.content)
+print("Metadata:", response._devmoe_meta)</code></pre>
+            </div>
+
+            <div class="snippet-block">
+              <h3>3. Direct cURL Request</h3>
+              <pre><code>curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "devmoe-auto",
+    "messages": [{"role": "user", "content": "Write a regex to extract email addresses"}]
+  }'</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

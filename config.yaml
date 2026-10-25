@@ -1,0 +1,85 @@
+server:
+  host: "127.0.0.1"
+  port: 8080
+  cors_origins: ["*"]
+  api_key: ""  # Optional auth key for the gateway
+
+routing:
+  strategy: "smart_hybrid"       # options: smart_hybrid, local_only, cloud_only, cost_optimized
+  complexity_thresholds:
+    easy_max: 35                 # 0-35: Routed directly to local model
+    medium_max: 70               # 36-70: Routed to Curated Free Cloud (Gemma / Flash / Groq)
+    # > 70: Routed to Cloud Frontier (Claude 3.5 Sonnet / Gemini Pro / GPT-4o)
+  
+  failover:
+    enabled: true
+    on_rate_limit: true          # Catch HTTP 429
+    on_quota_exhausted: true     # Catch HTTP 402/insufficient credits
+    fallback_target: "highest_param_local_fit" # Dynamically pick highest param local model fitting current RAM/VRAM
+    auto_air_gap_mode: true      # Completely switch to local LLMs if all cloud endpoints are exhausted
+    retry_delay_seconds: 60
+
+hardware:
+  ram_headroom_gb: 1.5           # Safety buffer RAM reserved for OS/apps
+  vram_headroom_gb: 0.8          # Safety buffer VRAM reserved for display
+  preferred_quantization: "q4_k_m"
+
+local:
+  provider: "ollama"
+  base_url: "http://localhost:11434"
+  timeout_seconds: 120
+  # Default fallback preference order if not autodetected:
+  preferred_models:
+    - "gemma2:9b"
+    - "qwen2.5-coder:7b"
+    - "deepseek-coder:6.7b"
+    - "llama3.2:3b"
+    - "qwen2.5-coder:1.5b"
+
+curated_cloud_providers:
+  # Curated Free Tier: Google AI Studio (Gemini & Gemma)
+  gemini:
+    enabled: true
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    env_key: "GEMINI_API_KEY"
+    free_tier: true
+    models:
+      complex: "gemini-1.5-pro"
+      medium: "gemini-1.5-flash"
+      gemma_cloud: "gemma-2-27b-it"
+
+  # Curated Free Tier: Groq Cloud
+  groq:
+    enabled: true
+    base_url: "https://api.groq.com/openai/v1"
+    env_key: "GROQ_API_KEY"
+    free_tier: true
+    models:
+      fast_coder: "qwen-2.5-coder-32b"
+      versatile: "llama-3.3-70b-versatile"
+
+  # Curated Free Tier: Cerebras Cloud
+  cerebras:
+    enabled: true
+    base_url: "https://api.cerebras.ai/v1"
+    env_key: "CEREBRAS_API_KEY"
+    free_tier: true
+    models:
+      fast_coder: "llama3.1-70b"
+
+  # Frontier APIs (Optional Pay-as-you-go / User Keys)
+  anthropic:
+    enabled: true
+    env_key: "ANTHROPIC_API_KEY"
+    free_tier: false
+    models:
+      frontier: "claude-3-5-sonnet-20241022"
+
+  openai:
+    enabled: true
+    base_url: "https://api.openai.com/v1"
+    env_key: "OPENAI_API_KEY"
+    free_tier: false
+    models:
+      frontier: "gpt-4o"
+      mini: "gpt-4o-mini"
