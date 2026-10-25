@@ -46,7 +46,9 @@ curated_cloud_providers:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
     env_key: "GEMINI_API_KEY"
     free_tier: true
-    models: {}
+    models:
+      medium: "gemma-4-26b-a4b-it"
+      complex: "gemma-4-26b-a4b-it"
 
   # Curated Free Tier: Groq Cloud
   groq:

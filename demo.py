@@ -30,11 +30,24 @@ PROMPTS = [
 
 
 def preview(text: str, n: int = 70) -> str:
-    line = next((l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith("```")), "")
-    return (line[:n] + "...") if len(line) > n else line
+    cleaned = text
+    if "</thought>" in text:
+        after = text.split("</thought>", 1)[1].strip()
+        cleaned = after if after else text.replace("<thought>", "").replace("</thought>", "").strip()
+    else:
+        cleaned = text.replace("<thought>", "").strip()
+
+    for line in cleaned.splitlines():
+        l = line.strip()
+        if not l or l.startswith("```"):
+            continue
+        l_clean = l.lstrip("*#- ").strip()
+        if l_clean:
+            return (l_clean[:n] + "...") if len(l_clean) > n else l_clean
+    return (cleaned.strip()[:n] + "...") if len(cleaned.strip()) > n else cleaned.strip()
 
 
-async def run(router: DevRouter, title: str, prompt: str, max_tokens: int = 300):
+async def run(router: DevRouter, title: str, prompt: str, max_tokens: int = 500):
     decision = router.route_task([{"role": "user", "content": prompt}])
     res, _ = await router.execute([{"role": "user", "content": prompt}], max_tokens=max_tokens)
     return decision, res
